@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Management - Strapi Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #f6f6f9; color: #32324d; display: flex; min-height: 100vh; }
+
+    .sidebar { width: 230px; background: #212134; color: #a5a5ba; display: flex; flex-direction: column; position: fixed; height: 100vh; overflow-y: auto; z-index: 10; }
+    .sidebar-header { padding: 20px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #32324d; }
+    .sidebar-header .logo { width: 32px; height: 32px; background: #7b79ff; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
+    .sidebar-header .title { color: #fff; font-size: 14px; font-weight: 600; }
+    .sidebar-header .subtitle { font-size: 11px; color: #a5a5ba; }
+    .sidebar-nav { padding: 16px 0; }
+    .sidebar-section-title { padding: 8px 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #666687; }
+    .sidebar-item { padding: 10px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; transition: background 0.15s; }
+    .sidebar-item:hover { background: #2a2a44; }
+    .sidebar-item.active { background: #2a2a44; color: #fff; }
+    .sidebar-item .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .sidebar-item .dot.purple { background: #7b79ff; }
+    .sidebar-count { background: #32324d; color: #a5a5ba; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-left: auto; }
+
+    .main { margin-left: 230px; flex: 1; min-height: 100vh; }
+    .topbar { background: #fff; border-bottom: 1px solid #eaeaef; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 5; }
+    .back-link { display: flex; align-items: center; gap: 6px; color: #7b79ff; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .topbar-actions { display: flex; gap: 8px; }
+    .btn { padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+    .btn-primary { background: #7b79ff; color: #fff; }
+    .btn-primary:hover { background: #6c6af0; }
+    .btn-success { background: #328048; color: #fff; }
+    .btn-outline { background: #fff; color: #32324d; border: 1px solid #dcdce4; }
+    .btn-outline:hover { background: #f6f6f9; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-icon { width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid #dcdce4; background: #fff; cursor: pointer; }
+
+    .content-area { padding: 24px; max-width: 1200px; }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .page-subtitle { font-size: 13px; color: #666687; margin-bottom: 24px; }
+
+    .section-card { background: #fff; border-radius: 4px; border: 1px solid #eaeaef; margin-bottom: 24px; }
+    .section-header { padding: 16px 20px; border-bottom: 1px solid #eaeaef; display: flex; justify-content: space-between; align-items: center; }
+    .section-title { font-size: 14px; font-weight: 600; }
+    .section-body { padding: 20px; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: #32324d; margin-bottom: 6px; }
+    .form-label .required { color: #d02b20; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 10px 14px; border: 1px solid #dcdce4; border-radius: 4px;
+      font-size: 14px; font-family: 'Inter', sans-serif; color: #32324d; background: #fff;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #7b79ff; box-shadow: 0 0 0 2px rgba(123,121,255,0.15); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-hint { font-size: 11px; color: #666687; margin-top: 4px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* Instructor select */
+    .instructor-select-wrapper { position: relative; }
+    .instructor-select-trigger { padding: 10px 14px; border: 1px solid #dcdce4; border-radius: 4px; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px; min-height: 42px; }
+    .instructor-select-trigger:hover { border-color: #7b79ff; }
+    .instructor-select-trigger .placeholder { color: #a5a5ba; font-size: 14px; }
+    .instructor-select-trigger .selected-name { font-size: 14px; color: #32324d; display: flex; align-items: center; gap: 10px; flex: 1; }
+    .instructor-select-trigger .selected-name img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+    .instructor-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #dcdce4; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 25; display: none; }
+    .instructor-dropdown.open { display: block; }
+    .instructor-option { padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; transition: background 0.1s; }
+    .instructor-option:hover { background: #f0f0ff; }
+    .instructor-option img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #eaeaef; }
+
+    /* Toggle */
+    .toggle-group { display: flex; border: 1px solid #dcdce4; border-radius: 4px; overflow: hidden; width: fit-content; }
+    .toggle-btn { padding: 8px 24px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: #fff; color: #666687; transition: all 0.15s; }
+    .toggle-btn.active { background: #7b79ff; color: #fff; }
+
+    /* Multi-select */
+    .multi-select { position: relative; }
+    .multi-select-trigger { padding: 10px 14px; border: 1px solid #dcdce4; border-radius: 4px; background: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; min-height: 42px; flex-wrap: wrap; gap: 4px; }
+    .multi-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #dcdce4; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 20; max-height: 200px; overflow-y: auto; display: none; }
+    .multi-select-dropdown.open { display: block; }
+    .multi-select-option { padding: 10px 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+    .multi-select-option:hover { background: #f6f6f9; }
+    .multi-select-option input[type="checkbox"] { accent-color: #7b79ff; }
+    .chip { background: #7b79ff; color: #fff; padding: 2px 10px; border-radius: 4px; font-size: 12px; display: flex; align-items: center; gap: 4px; }
+    .chip .remove { cursor: pointer; font-size: 14px; }
+
+    /* ===== THUMBNAIL - Figma ===== */
+    .thumbnail-previews { display: flex; gap: 24px; flex-wrap: wrap; }
+    .thumbnail-card-wrapper { text-align: center; }
+    .thumbnail-card-wrapper .mode-label { font-size: 11px; font-weight: 600; color: #666687; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .thumb-card { position: relative; width: 307px; height: 172px; border-radius: 12px; overflow: hidden; }
+    .thumb-light { background: linear-gradient(179.55deg, #FBF8FD 67.84%, #E9DCF7 99.64%); }
+    .thumb-light .thumb-ellipse-1 { position: absolute; width: 103px; height: 103px; left: 191px; top: 23px; background: #D7BCF1; border-radius: 50%; }
+    .thumb-light .thumb-ellipse-2 { position: absolute; width: 109px; height: 109px; left: 225px; top: -92px; background: linear-gradient(0deg, #F5EFFB 0%, #C39CEA 100%); border-radius: 50%; transform: rotate(45deg); }
+    .thumb-light .thumb-ellipse-3 { position: absolute; width: 109px; height: 109px; left: 156px; top: 122px; background: linear-gradient(0deg, #F5EFFB 0%, #C39CEA 100%); border-radius: 50%; transform: rotate(180deg); }
+    .thumb-light .thumb-title { color: #280E42; }
+    .thumb-light .thumb-subtitle { color: #7132B0; }
+    .thumb-light .thumb-date-badge { background: #F9F9F9; }
+    .thumb-light .thumb-date-text, .thumb-light .thumb-time-text { color: #3B3B3B; }
+    .thumb-dark { background: #1A092A; }
+    .thumb-dark .thumb-ellipse-1 { position: absolute; width: 103px; height: 103px; left: 191px; top: 23px; background: rgba(84, 32, 135, 0.64); border-radius: 50%; }
+    .thumb-dark .thumb-ellipse-2 { position: absolute; width: 109px; height: 109px; left: 225px; top: -92px; background: radial-gradient(circle at 62% 106%, #5A298B 0%, #1A092A 82%); border-radius: 50%; transform: rotate(45deg); }
+    .thumb-dark .thumb-ellipse-3 { position: absolute; width: 109px; height: 109px; left: 156px; top: 122px; background: radial-gradient(circle at 35% 103%, #5A298B 0%, #1A092A 87%); border-radius: 50%; transform: rotate(180deg); }
+    .thumb-dark .thumb-title { color: #F5EFFB; }
+    .thumb-dark .thumb-subtitle { color: #D7BCF1; }
+    .thumb-dark .thumb-date-badge { background: #3B3B3B; }
+    .thumb-dark .thumb-date-text, .thumb-dark .thumb-time-text { color: #F9F9F9; }
+    .thumb-instructor-photo { position: absolute; width: 150px; height: 160px; right: 5px; bottom: 0; z-index: 3; background-size: contain; background-position: bottom center; background-repeat: no-repeat; }
+    .thumb-text-block { position: absolute; left: 19px; top: 20px; width: 155px; display: flex; flex-direction: column; gap: 6px; z-index: 4; }
+    .thumb-title { font-weight: 600; font-size: 14px; line-height: 17px; letter-spacing: -0.73px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .thumb-subtitle { font-weight: 400; font-size: 12px; line-height: 14px; }
+    .thumb-cta { position: absolute; left: 18px; bottom: 15px; z-index: 4; display: inline-flex; align-items: center; justify-content: center; padding: 6px 10px; gap: 4px; background: #5A298B; border: 0.5px solid #F5EFFB; border-radius: 6px; font-weight: 700; font-size: 11px; color: #F5EFFB; white-space: nowrap; }
+    .thumb-date-badge { position: absolute; right: 12px; bottom: 14px; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 7px; gap: 3px; min-width: 62px; height: 36px; box-shadow: 2px 3px 4.3px rgba(0, 0, 0, 0.33); border-radius: 5px; }
+    .thumb-date-text { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 11px; line-height: 10px; text-transform: uppercase; text-align: center; }
+    .thumb-time-text { font-family: 'Space Grotesk', sans-serif; font-weight: 400; font-size: 10px; line-height: 10px; text-transform: uppercase; text-align: center; }
+
+    /* Notification */
+    .notification-card { border: 1px solid #eaeaef; border-radius: 4px; padding: 16px; margin-bottom: 12px; position: relative; }
+    .notification-card .remove-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: #d02b20; cursor: pointer; font-size: 18px; }
+
+    /* Metrics Table */
+    .metrics-table { width: 100%; border-collapse: collapse; }
+    .metrics-table th { text-align: left; font-size: 12px; font-weight: 600; color: #666687; padding: 10px 16px; border-bottom: 1px solid #eaeaef; }
+    .metrics-table td { padding: 12px 16px; font-size: 14px; color: #32324d; border-bottom: 1px solid #f6f6f9; }
+    .metrics-table tr:last-child td { border-bottom: none; }
+    .status-badge { padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .status-completed { background: #e6f6ec; color: #328048; }
+    .status-scheduled { background: #eaeaff; color: #4945ff; }
+    .status-draft { background: #f6f6f9; color: #666687; }
+
+    /* Playlist dropdown */
+    .playlist-dropdown-wrapper { position: relative; margin-bottom: 16px; }
+    .playlist-trigger { padding: 10px 14px; border: 1px solid #dcdce4; border-radius: 4px; background: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .playlist-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #dcdce4; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 25; display: none; max-height: 300px; overflow-y: auto; }
+    .playlist-dropdown.open { display: block; }
+    .playlist-search { padding: 10px 14px; border-bottom: 1px solid #eaeaef; }
+    .playlist-search input { width: 100%; padding: 8px 10px; border: 1px solid #dcdce4; border-radius: 4px; font-size: 13px; font-family: 'Inter', sans-serif; }
+    .playlist-search input:focus { outline: none; border-color: #7b79ff; }
+    .playlist-option { padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; }
+    .playlist-option:hover { background: #f0f0ff; }
+    .playlist-option input[type="checkbox"] { accent-color: #7b79ff; width: 16px; height: 16px; }
+    .playlist-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .playlist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* Poll */
+    .poll-option-row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+    .poll-option-row .form-input { flex: 1; }
+    .poll-bar { height: 8px; background: #eaeaef; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+    .poll-bar-fill { height: 100%; background: #7b79ff; border-radius: 4px; transition: width 0.3s; }
+    .poll-result-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f6f6f9; }
+
+    /* Comment */
+    .comment-container { border: 1px solid #eaeaef; border-radius: 4px; max-height: 350px; overflow-y: auto; transition: max-height 0.3s; }
+    .comment-container.expanded { max-height: 700px; }
+    .comment-item { padding: 12px 16px; border-bottom: 1px solid #f6f6f9; display: flex; align-items: flex-start; gap: 12px; }
+    .comment-item:last-child { border-bottom: none; }
+    .comment-avatar { width: 32px; height: 32px; background: #7b79ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+    .comment-content { flex: 1; }
+    .comment-user { font-size: 12px; font-weight: 600; color: #32324d; }
+    .comment-user-id { font-size: 11px; color: #a5a5ba; margin-left: 8px; }
+    .comment-text { font-size: 13px; color: #666687; margin-top: 4px; line-height: 1.4; }
+    .comment-time { font-size: 11px; color: #a5a5ba; margin-top: 4px; }
+    .comment-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .comment-action-btn { width: 28px; height: 28px; border: 1px solid #dcdce4; border-radius: 4px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all 0.15s; }
+    .comment-action-btn.delete:hover { background: #fcecea; border-color: #d02b20; color: #d02b20; }
+    .comment-action-btn.block:hover { background: #fef3cd; border-color: #d9822b; color: #d9822b; }
+    .search-box { display: flex; gap: 8px; margin-bottom: 12px; }
+    .search-box .form-input { flex: 1; }
+    .expand-toggle { text-align: center; padding: 8px; cursor: pointer; color: #7b79ff; font-size: 12px; font-weight: 600; border-top: 1px solid #eaeaef; }
+    .expand-toggle:hover { background: #f6f6f9; }
+
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 2px solid #eaeaef; margin-bottom: 24px; }
+    .tab { padding: 12px 20px; font-size: 13px; font-weight: 600; cursor: pointer; color: #666687; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+    .tab:hover { color: #32324d; }
+    .tab.active { color: #7b79ff; border-bottom-color: #7b79ff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-blue { background: #eaeaff; color: #4945ff; }
+
+    /* Toast / Save feedback */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 12px 20px; border-radius: 4px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.5s forwards; color: #fff; }
+    .toast-success { background: #328048; }
+    .toast-info { background: #4945ff; }
+    .toast svg { flex-shrink: 0; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+    /* Saved indicator */
+    .save-indicator { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #328048; opacity: 0; transition: opacity 0.3s; }
+    .save-indicator.visible { opacity: 1; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #dcdce4; border-radius: 3px; }
+    @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } .form-row, .playlist-grid { grid-template-columns: 1fr; } .thumbnail-previews { flex-direction: column; } }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header"><div class="logo">UP</div><div><div class="title">Strapi Dashboard</div><div class="subtitle">Workplace</div></div></div>
+  <div class="sidebar-nav">
+    <div class="sidebar-item active"><svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg> Content Manager</div>
+    <div class="sidebar-item"><svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 2h8v2H4zM2 6h12v2H2zM4 10h8v2H4zM6 14h4v1H6z"/></svg> Media Library</div>
+    <div class="sidebar-section-title">Collection Types <span class="sidebar-count">10</span></div>
+    <div class="sidebar-item active"><span class="dot purple"></span> Course</div>
+    <div class="sidebar-item"><span class="dot"></span> Course Category</div>
+    <div class="sidebar-item"><span class="dot"></span> Course Instructor</div>
+    <div class="sidebar-item"><span class="dot"></span> course-cohort</div>
+    <div class="sidebar-item"><span class="dot"></span> Fund House</div>
+    <div class="sidebar-item"><span class="dot"></span> Hello Banner</div>
+    <div class="sidebar-item"><span class="dot"></span> Structure Course</div>
+    <div class="sidebar-item"><span class="dot"></span> Webinar</div>
+    <div class="sidebar-section-title">Single Types <span class="sidebar-count">5</span></div>
+    <div class="sidebar-item"><span class="dot"></span> Ulearn Category order</div>
+    <div class="sidebar-item"><span class="dot"></span> UpLearn Expert Courses</div>
+    <div class="sidebar-item"><span class="dot"></span> UpLearn Hero Banner</div>
+  </div>
+  <div style="margin-top:auto;padding:16px;border-top:1px solid #32324d;">
+    <div class="sidebar-item" style="padding:8px 0;"><div style="width:28px;height:28px;background:#7b79ff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">NJ</div><span style="color:#fff;font-size:13px;">neet jain</span></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <a class="back-link" href="#"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M11 2L5 8l6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg> Back</a>
+    <div style="font-size:14px;font-weight:600;">How Top Traders Build Their Bias BEFORE 9:15 AM | Market Ready Ep 1</div>
+    <div class="topbar-actions">
+      <button class="btn btn-success"><svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 16 16"><path d="M13.5 4.5l-7 7L3 8"/></svg> Unpublish</button>
+      <button class="btn btn-outline">Save</button>
+    </div>
+  </div>
+
+  <div class="content-area">
+    <div class="page-title">How Top Traders Build Their Bias BEFORE 9:15 AM | Market Ready Ep 1</div>
+    <div class="page-subtitle">API ID: course</div>
+    <div class="tabs">
+      <div class="tab active" data-tab="thumbnail">Thumbnail</div>
+      <div class="tab" data-tab="notifications">Notifications</div>
+      <div class="tab" data-tab="playlist">Playlist</div>
+      <div class="tab" data-tab="poll">Poll</div>
+      <div class="tab" data-tab="comments">Comments</div>
+    </div>
+
+    <!-- THUMBNAIL -->
+    <div class="tab-content active" id="tab-thumbnail">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Thumbnail Generator</div><div class="badge badge-blue">Live Preview</div></div>
+        <div class="section-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Select Instructor <span class="required">*</span></label>
+              <div class="instructor-select-wrapper" id="instructor-select">
+                <div class="instructor-select-trigger" onclick="toggleInstructorDD()">
+                  <span class="placeholder" id="instructor-display">Choose instructor...</span>
+                  <svg width="14" height="14" fill="none" stroke="#666687" stroke-width="2" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg>
+                </div>
+                <div class="instructor-dropdown" id="instructor-dropdown"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Title <span class="required">*</span></label>
+              <input type="text" class="form-input" id="thumb-title" placeholder="e.g. Market Analysis Deep Dive" oninput="updateThumbnail();autoSave('thumbnail')">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Date <span class="required">*</span></label>
+              <input type="date" class="form-input" id="thumb-date" oninput="updateThumbnail();autoSave('thumbnail')">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Time <span style="color:#a5a5ba;">(optional)</span></label>
+              <input type="time" class="form-input" id="thumb-time" oninput="updateThumbnail();autoSave('thumbnail')">
+              <div class="form-hint">Fallback: current year if left empty</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <label class="form-label">Check Preview</label>
+            <div class="thumbnail-previews">
+              <div class="thumbnail-card-wrapper">
+                <div class="mode-label">Dark Mode</div>
+                <div class="thumb-card thumb-dark">
+                  <div class="thumb-ellipse-1"></div><div class="thumb-ellipse-2"></div><div class="thumb-ellipse-3"></div>
+                  <div class="thumb-instructor-photo" id="thumb-photo-dark"></div>
+                  <div class="thumb-text-block"><div class="thumb-title" id="dark-title">Session Title</div><div class="thumb-subtitle" id="dark-subtitle">Expert Name</div></div>
+                  <div class="thumb-cta">Watch preview</div>
+                  <div class="thumb-date-badge"><div class="thumb-date-text" id="dark-date">MAR 19</div><div class="thumb-time-text" id="dark-time">2026</div></div>
+                </div>
+              </div>
+              <div class="thumbnail-card-wrapper">
+                <div class="mode-label">Light Mode</div>
+                <div class="thumb-card thumb-light">
+                  <div class="thumb-ellipse-1"></div><div class="thumb-ellipse-2"></div><div class="thumb-ellipse-3"></div>
+                  <div class="thumb-instructor-photo" id="thumb-photo-light"></div>
+                  <div class="thumb-text-block"><div class="thumb-title" id="light-title">Session Title</div><div class="thumb-subtitle" id="light-subtitle">Expert Name</div></div>
+                  <div class="thumb-cta">Watch preview</div>
+                  <div class="thumb-date-badge"><div class="thumb-date-text" id="light-date">MAR 19</div><div class="thumb-time-text" id="light-time">2026</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="tab-content" id="tab-notifications">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Push Notifications</div>
+          <button class="btn btn-primary btn-sm" onclick="addNotification()"><svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg> Add Notification</button>
+        </div>
+        <div class="section-body" id="notifications-container"></div>
+        <div class="section-header" style="border-top:1px solid #eaeaef;"><div class="section-title">Notification Metrics</div>
+          <button class="btn btn-outline btn-sm" onclick="refreshMetrics()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><path d="M14 8A6 6 0 112 8"/><path d="M14 2v6h-6"/></svg> Refresh</button>
+        </div>
+        <div class="section-body" style="padding:0;">
+          <table class="metrics-table">
+            <thead><tr><th>Sent To</th><th>Engaged</th><th>CTR</th><th>Status</th></tr></thead>
+            <tbody id="metrics-tbody">
+              <tr><td>196,095</td><td>712</td><td>0.36%</td><td><span class="status-badge status-completed">Completed</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAYLIST -->
+    <div class="tab-content" id="tab-playlist">
+      <div class="section-card">
+        <div class="section-body">
+          <div class="playlist-grid">
+            <div>
+              <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;">Add to Playlist</h3>
+              <div class="playlist-dropdown-wrapper" id="playlist-dd-wrapper">
+                <div class="playlist-trigger" onclick="togglePlaylistDD()">
+                  <span style="font-size:14px;color:#a5a5ba;" id="playlist-trigger-text">Select playlists...</span>
+                  <svg width="14" height="14" fill="none" stroke="#666687" stroke-width="2" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg>
+                </div>
+                <div class="playlist-dropdown" id="playlist-dropdown">
+                  <div class="playlist-search"><input type="text" placeholder="Search playlists..." oninput="filterPlaylists(this.value)"></div>
+                  <div id="playlist-options"></div>
+                </div>
+              </div>
+              <div class="playlist-chips" id="playlist-chips"></div>
+            </div>
+            <div>
+              <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;">Create a New Playlist</h3>
+              <div class="form-group"><label class="form-label">Name of Playlist <span class="required">*</span></label><input type="text" class="form-input" id="new-playlist-name" placeholder="Enter playlist name"></div>
+              <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="new-playlist-desc" placeholder="Enter playlist description"></textarea></div>
+              <button class="btn btn-primary btn-sm" onclick="createPlaylist()"><svg width="14" height="14" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg> Create Playlist</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POLL -->
+    <div class="tab-content" id="tab-poll">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Poll</div>
+          <button class="btn btn-outline btn-sm" onclick="refreshPoll()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><path d="M14 8A6 6 0 112 8"/><path d="M14 2v6h-6"/></svg> Refresh Results</button>
+        </div>
+        <div class="section-body">
+          <div class="form-group"><label class="form-label">Question <span class="required">*</span></label><input type="text" class="form-input" id="poll-question" placeholder="e.g. What strategy are you most interested in?" oninput="autoSave('poll')"></div>
+          <div id="poll-options-container">
+            <div class="poll-option-row"><span style="font-size:12px;font-weight:600;color:#666687;min-width:60px;">Option 1</span><input type="text" class="form-input" placeholder="Enter option text" oninput="autoSave('poll')"><button class="btn-icon" onclick="this.parentElement.remove()" title="Remove"><svg width="14" height="14" fill="none" stroke="#d02b20" stroke-width="2" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+            <div class="poll-option-row"><span style="font-size:12px;font-weight:600;color:#666687;min-width:60px;">Option 2</span><input type="text" class="form-input" placeholder="Enter option text" oninput="autoSave('poll')"><button class="btn-icon" onclick="this.parentElement.remove()" title="Remove"><svg width="14" height="14" fill="none" stroke="#d02b20" stroke-width="2" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+          </div>
+          <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="addPollOption()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg> Add Option</button>
+          <div id="poll-results" style="margin-top:24px;display:none;"><label class="form-label">Results</label><div id="poll-results-inner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMENTS -->
+    <div class="tab-content" id="tab-comments">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">User Comments</div>
+          <button class="btn btn-outline btn-sm" onclick="refreshComments()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><path d="M14 8A6 6 0 112 8"/><path d="M14 2v6h-6"/></svg> Refresh</button>
+        </div>
+        <div class="section-body">
+          <div class="search-box"><input type="text" class="form-input" id="comment-search" placeholder="Search by comment or user ID..." oninput="filterComments()"><button class="btn btn-outline btn-sm" onclick="filterComments()"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4 4"/></svg> Search</button></div>
+          <div class="comment-container" id="comment-container"></div>
+          <div class="expand-toggle" onclick="toggleExpand()"><span id="expand-text">&#9660; Expand to see more</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+  // ===== TOAST / SAVE FEEDBACK =====
+  function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    const icon = type === 'success'
+      ? '<svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 16 16"><path d="M13.5 4.5l-7 7L3 8"/></svg>'
+      : '<svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11h.01"/></svg>';
+    toast.innerHTML = icon + message;
+    container.appendChild(toast);
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 3000);
+  }
+
+  let saveTimers = {};
+  function autoSave(section) {
+    if (saveTimers[section]) clearTimeout(saveTimers[section]);
+    saveTimers[section] = setTimeout(() => {
+      showToast(section.charAt(0).toUpperCase() + section.slice(1) + ' saved successfully');
+    }, 800);
+  }
+
+  // ===== TABS =====
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ===== INSTRUCTORS =====
+  const instructors = [
+    { name: 'Amit Goel', photo: 'assets/amit-goel.png' },
+    { name: 'Vijay Kumar Gupta', photo: 'assets/vijay-gupta.png' },
+    { name: 'Milan Bavishi', photo: 'assets/milan-bavishi.png' },
+    { name: 'Jaye Mehta', photo: 'assets/jaye-mehta.png' },
+    { name: 'Gauri', photo: 'assets/gauri.png' },
+  ];
+  let selectedInstructor = null;
+
+  function renderInstructorOptions() {
+    document.getElementById('instructor-dropdown').innerHTML = instructors.map((inst, i) =>
+      `<div class="instructor-option" onclick="selectInstructor(${i})"><img src="${inst.photo}" alt="${inst.name}"><span>${inst.name}</span></div>`
+    ).join('');
+  }
+
+  function toggleInstructorDD() {
+    const dd = document.getElementById('instructor-dropdown');
+    dd.classList.toggle('open');
+    const close = (e) => { if (!document.getElementById('instructor-select').contains(e.target)) { dd.classList.remove('open'); document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  }
+
+  function selectInstructor(i) {
+    selectedInstructor = instructors[i];
+    const display = document.getElementById('instructor-display');
+    display.className = 'selected-name';
+    display.innerHTML = `<img src="${selectedInstructor.photo}" alt="${selectedInstructor.name}">${selectedInstructor.name}`;
+    document.getElementById('instructor-dropdown').classList.remove('open');
+    updateThumbnail();
+    autoSave('thumbnail');
+  }
+
+  // ===== THUMBNAIL =====
+  function updateThumbnail() {
+    const title = document.getElementById('thumb-title').value || 'Session Title';
+    const expert = selectedInstructor ? selectedInstructor.name : 'Expert Name';
+    const dateVal = document.getElementById('thumb-date').value;
+    const timeVal = document.getElementById('thumb-time').value;
+
+    document.getElementById('dark-title').textContent = title;
+    document.getElementById('light-title').textContent = title;
+    document.getElementById('dark-subtitle').textContent = expert;
+    document.getElementById('light-subtitle').textContent = expert;
+
+    let dateStr = 'MAR 19';
+    if (dateVal) { const d = new Date(dateVal); const m = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']; dateStr = m[d.getMonth()] + ' ' + String(d.getDate()).padStart(2,'0'); }
+    document.getElementById('dark-date').textContent = dateStr;
+    document.getElementById('light-date').textContent = dateStr;
+
+    let timeStr = new Date().getFullYear().toString();
+    if (timeVal) { const [h,mi] = timeVal.split(':'); const hr = parseInt(h); const ap = hr >= 12 ? 'PM' : 'AM'; timeStr = String(hr%12||12).padStart(2,'0') + ':' + mi + ' ' + ap; }
+    document.getElementById('dark-time').textContent = timeStr;
+    document.getElementById('light-time').textContent = timeStr;
+
+    const photoUrl = selectedInstructor ? `url("${selectedInstructor.photo}")` : 'none';
+    document.getElementById('thumb-photo-dark').style.backgroundImage = photoUrl;
+    document.getElementById('thumb-photo-light').style.backgroundImage = photoUrl;
+  }
+
+  // ===== NOTIFICATIONS =====
+  const cohortOptions = ['Active (FnO)', 'Active (Intraday)', 'Power (FnO)', 'New User', 'Lead User'];
+  let notifCount = 0;
+
+  function addNotification() {
+    notifCount++;
+    const c = document.getElementById('notifications-container');
+    const card = document.createElement('div');
+    card.className = 'notification-card';
+    card.innerHTML = `
+      <button class="remove-btn" onclick="this.parentElement.remove();showToast('Notification removed')" title="Remove">&times;</button>
+      <div style="font-size:12px;font-weight:600;color:#666687;margin-bottom:12px;">Notification #${notifCount}</div>
+      <div class="form-group"><label class="form-label">Select Cohorts</label>
+        <div class="multi-select" id="cs-${notifCount}">
+          <div class="multi-select-trigger" onclick="toggleMS(${notifCount})"><span style="color:#a5a5ba;font-size:13px;" class="ph">Select cohorts...</span><svg width="14" height="14" fill="none" stroke="#666687" stroke-width="2" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4"/></svg></div>
+          <div class="multi-select-dropdown" id="dd-${notifCount}">${cohortOptions.map(o => `<div class="multi-select-option" onclick="selCohort(this,${notifCount})"><input type="checkbox" value="${o}"> ${o}</div>`).join('')}</div>
+        </div>
+      </div>
+      ${notifCount > 1 ? `<div class="form-group"><label class="form-label">Use same cohorts as #1?</label><div class="toggle-group"><button class="toggle-btn" onclick="copyCohorts(${notifCount},this)">YES</button><button class="toggle-btn active" onclick="this.parentElement.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');">NO</button></div></div>` : ''}
+      <div class="form-row"><div class="form-group"><label class="form-label">Title <span class="required">*</span></label><input type="text" class="form-input" placeholder="Notification title" oninput="autoSave('notification')"></div><div class="form-group"><label class="form-label">Body <span class="required">*</span></label><input type="text" class="form-input" placeholder="Notification body text" oninput="autoSave('notification')"></div></div>
+      <div class="form-row"><div class="form-group"><label class="form-label">Date <span class="required">*</span></label><input type="date" class="form-input" oninput="autoSave('notification')"></div><div class="form-group"><label class="form-label">Time <span class="required">*</span></label><input type="time" class="form-input" oninput="autoSave('notification')"></div></div>`;
+    c.appendChild(card);
+    showToast('Notification #' + notifCount + ' added');
+  }
+  addNotification();
+
+  function toggleMS(id) { const dd = document.getElementById('dd-'+id); dd.classList.toggle('open'); const cl = (e)=>{if(!dd.parentElement.contains(e.target)){dd.classList.remove('open');document.removeEventListener('click',cl);}}; setTimeout(()=>document.addEventListener('click',cl),0); }
+  function selCohort(el, id) { el.querySelector('input').checked = !el.querySelector('input').checked; updChips(id); autoSave('notification'); }
+  function updChips(id) {
+    const cont = document.getElementById('cs-'+id), trig = cont.querySelector('.multi-select-trigger'), checked = cont.querySelectorAll('input:checked'), ph = trig.querySelector('.ph');
+    trig.querySelectorAll('.chip').forEach(c=>c.remove());
+    if(checked.length===0){if(ph)ph.style.display='';}else{if(ph)ph.style.display='none'; checked.forEach(cb=>{const ch=document.createElement('span');ch.className='chip';ch.textContent=cb.value;trig.insertBefore(ch,trig.lastElementChild);});}
+  }
+  function copyCohorts(tid, btn) { btn.parentElement.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); const s=document.getElementById('cs-1'),t=document.getElementById('cs-'+tid); if(!s||!t)return; const sv=Array.from(s.querySelectorAll('input:checked')).map(c=>c.value); t.querySelectorAll('input').forEach(c=>{c.checked=sv.includes(c.value);}); updChips(tid); showToast('Cohorts copied'); }
+
+  function refreshMetrics() {
+    const tbody = document.getElementById('metrics-tbody');
+    tbody.innerHTML = '';
+    const notifs = document.querySelectorAll('.notification-card');
+    notifs.forEach((n, i) => {
+      const sent = Math.floor(Math.random() * 200000) + 50000;
+      const engaged = Math.floor(Math.random() * 2000) + 200;
+      const ctr = (engaged / sent * 100).toFixed(2);
+      const statuses = ['Completed', 'Scheduled', 'Draft'];
+      const classes = ['status-completed', 'status-scheduled', 'status-draft'];
+      const si = Math.min(i, 2);
+      tbody.innerHTML += `<tr><td>${sent.toLocaleString()}</td><td>${engaged.toLocaleString()}</td><td>${ctr}</td><td><span class="status-badge ${classes[si]}">${statuses[si]}</span></td></tr>`;
+    });
+    showToast('Metrics refreshed', 'info');
+  }
+
+  // ===== PLAYLIST =====
+  let playlists = [
+    { name: 'Intraday Trading Series', checked: false },
+    { name: 'Option Trading Series', checked: false },
+    { name: 'Trade Setup', checked: false },
+    { name: 'Swing Trading Series', checked: false },
+  ];
+
+  function renderPlaylists(filter = '') {
+    const cont = document.getElementById('playlist-options');
+    const f = filter.toLowerCase();
+    cont.innerHTML = playlists.filter(p => p.name.toLowerCase().includes(f)).map((p, i) => {
+      const idx = playlists.indexOf(p);
+      return `<div class="playlist-option" onclick="togglePL(${idx})"><input type="checkbox" ${p.checked?'checked':''} onclick="event.stopPropagation();togglePL(${idx})"> ${p.name}</div>`;
+    }).join('');
+    if (cont.innerHTML === '') cont.innerHTML = '<div style="padding:16px;text-align:center;color:#a5a5ba;font-size:13px;">No playlists found</div>';
+    renderPlaylistChips();
+  }
+
+  function renderPlaylistChips() {
+    const chips = document.getElementById('playlist-chips');
+    const selected = playlists.filter(p => p.checked);
+    chips.innerHTML = selected.map(p => `<span class="chip">${p.name} <span class="remove" onclick="uncheckPL('${p.name}')">x</span></span>`).join('');
+    const trigText = document.getElementById('playlist-trigger-text');
+    trigText.textContent = selected.length > 0 ? selected.length + ' playlist(s) selected' : 'Select playlists...';
+    trigText.style.color = selected.length > 0 ? '#32324d' : '#a5a5ba';
+  }
+
+  function togglePlaylistDD() {
+    const dd = document.getElementById('playlist-dropdown');
+    dd.classList.toggle('open');
+    const cl = (e) => { if (!document.getElementById('playlist-dd-wrapper').contains(e.target)) { dd.classList.remove('open'); document.removeEventListener('click', cl); } };
+    setTimeout(() => document.addEventListener('click', cl), 0);
+  }
+
+  function togglePL(idx) {
+    playlists[idx].checked = !playlists[idx].checked;
+    renderPlaylists(document.querySelector('.playlist-search input')?.value || '');
+    showToast(playlists[idx].checked ? `Added to "${playlists[idx].name}"` : `Removed from "${playlists[idx].name}"`);
+  }
+
+  function uncheckPL(name) {
+    const p = playlists.find(x => x.name === name);
+    if (p) { p.checked = false; renderPlaylists(); showToast(`Removed from "${name}"`); }
+  }
+
+  function filterPlaylists(val) { renderPlaylists(val); }
+
+  function createPlaylist() {
+    const name = document.getElementById('new-playlist-name').value.trim();
+    if (!name) { showToast('Please enter a playlist name', 'info'); return; }
+    playlists.push({ name, checked: false });
+    renderPlaylists();
+    document.getElementById('new-playlist-name').value = '';
+    document.getElementById('new-playlist-desc').value = '';
+    showToast(`Playlist "${name}" created successfully`);
+  }
+
+  // ===== POLL =====
+  let pollOptCount = 2;
+  function addPollOption() {
+    pollOptCount++;
+    const c = document.getElementById('poll-options-container');
+    const r = document.createElement('div'); r.className = 'poll-option-row';
+    r.innerHTML = `<span style="font-size:12px;font-weight:600;color:#666687;min-width:60px;">Option ${pollOptCount}</span><input type="text" class="form-input" placeholder="Enter option text" oninput="autoSave('poll')"><button class="btn-icon" onclick="this.parentElement.remove()" title="Remove"><svg width="14" height="14" fill="none" stroke="#d02b20" stroke-width="2" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>`;
+    c.appendChild(r);
+    showToast('Option added');
+  }
+
+  function refreshPoll() {
+    const rd = document.getElementById('poll-results'), inner = document.getElementById('poll-results-inner');
+    const opts = document.querySelectorAll('#poll-options-container .form-input');
+    inner.innerHTML = ''; let total = 0; const votes = [];
+    opts.forEach(o => { const v = Math.floor(Math.random()*500)+50; votes.push({text:o.value||'Option',votes:v}); total+=v; });
+    votes.forEach(v => {
+      const pct = ((v.votes/total)*100).toFixed(1);
+      inner.innerHTML += `<div class="poll-result-row"><div style="flex:1;"><div style="font-size:13px;font-weight:500;">${v.text}</div><div class="poll-bar" style="margin-top:6px;"><div class="poll-bar-fill" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:80px;"><div style="font-size:14px;font-weight:600;">${v.votes}</div><div style="font-size:11px;color:#666687;">${pct}%</div></div></div>`;
+    });
+    rd.style.display = 'block';
+    showToast('Poll results refreshed', 'info');
+  }
+
+  // ===== COMMENTS =====
+  const comments = [
+    { user: 'Rahul Verma', id: 'USR-4521', text: 'Great session! Really helped me understand pre-market analysis better.', time: '2 min ago' },
+    { user: 'Priya Singh', id: 'USR-8934', text: 'Can you please share the indicators used in this session?', time: '5 min ago' },
+    { user: 'Amit Kumar', id: 'USR-2341', text: 'The bias building framework was eye-opening. Will apply from tomorrow.', time: '12 min ago' },
+    { user: 'Sneha Patel', id: 'USR-6782', text: 'Audio quality was a bit low in the middle. Please fix for next session.', time: '18 min ago' },
+    { user: 'Vikram Joshi', id: 'USR-1123', text: 'How do I apply this for options trading? Need more context on FnO.', time: '25 min ago' },
+    { user: 'Ananya Rao', id: 'USR-9087', text: 'Loved the live trade demo! Very practical approach.', time: '32 min ago' },
+    { user: 'Karan Mehta', id: 'USR-5543', text: 'Please do a follow-up on swing trading setups as well.', time: '45 min ago' },
+    { user: 'Deepa Nair', id: 'USR-3367', text: 'The market structure analysis was very clear. Thanks for the session!', time: '1 hr ago' },
+    { user: 'Rohan Gupta', id: 'USR-7789', text: 'Can we get a PDF of the slides shared in this session?', time: '1 hr ago' },
+    { user: 'Meera Sharma', id: 'USR-4401', text: 'First time attending. The concepts were explained very well for beginners.', time: '2 hr ago' },
+  ];
+
+  function renderComments(filter = '') {
+    const c = document.getElementById('comment-container'); c.innerHTML = '';
+    const f = filter ? comments.filter(x => x.text.toLowerCase().includes(filter.toLowerCase()) || x.id.toLowerCase().includes(filter.toLowerCase()) || x.user.toLowerCase().includes(filter.toLowerCase())) : comments;
+    if (!f.length) { c.innerHTML = '<div style="padding:24px;text-align:center;color:#a5a5ba;font-size:13px;">No comments found</div>'; return; }
+    f.forEach((x, i) => {
+      const ini = x.user.split(' ').map(n=>n[0]).join('');
+      c.innerHTML += `<div class="comment-item"><div class="comment-avatar">${ini}</div><div class="comment-content"><div class="comment-user">${x.user}<span class="comment-user-id">${x.id}</span></div><div class="comment-text">${x.text}</div><div class="comment-time">${x.time}</div></div><div class="comment-actions"><button class="comment-action-btn delete" onclick="delComment(${i})" title="Delete"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><path d="M2 4h12M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1M6 7v5M10 7v5"/></svg></button><button class="comment-action-btn block" onclick="blockUser('${x.id}','${x.user}')" title="Block"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M3.5 3.5l9 9"/></svg></button></div></div>`;
+    });
+  }
+  function filterComments() { renderComments(document.getElementById('comment-search').value); }
+  function delComment(i) { if(confirm('Delete this comment?')){comments.splice(i,1);filterComments();showToast('Comment deleted');} }
+  function blockUser(id,name) { if(confirm('Block '+name+'?')){for(let i=comments.length-1;i>=0;i--)if(comments[i].id===id)comments.splice(i,1);filterComments();showToast('User '+name+' blocked');} }
+  function refreshComments() {
+    const n=['Suresh K','Arun R','Pooja M','Nikhil D','Kavita S'], t=['Just joined, looking forward!','Can you cover gap-up strategies?','Thanks, very insightful.','When is the next episode?','Risk management tips were helpful.'];
+    const r=Math.floor(Math.random()*n.length);
+    comments.unshift({user:n[r],id:'USR-'+Math.floor(Math.random()*9000+1000),text:t[r],time:'Just now'});
+    filterComments(); showToast('New comments loaded', 'info');
+  }
+  let expanded = false;
+  function toggleExpand() { const c = document.getElementById('comment-container'); expanded=!expanded; c.classList.toggle('expanded',expanded); document.getElementById('expand-text').innerHTML = expanded?'&#9650; Collapse':'&#9660; Expand to see more'; }
+
+  // INIT
+  renderInstructorOptions();
+  renderComments();
+  renderPlaylists();
+  updateThumbnail();
+</script>
+</body>
+</html>
